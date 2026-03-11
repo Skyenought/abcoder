@@ -181,6 +181,22 @@ func (p *GoParser) loadPackages(mod *Module, dir string, pkgPath PkgPath) (err e
 		baseOpts |= packages.NeedForTest
 	}
 
+	hasCGO := false
+	if string(pkgPath) == "./..." {
+		for cgoPkg := range p.cgoPkgs {
+			if strings.HasPrefix(cgoPkg, mod.Name) {
+				hasCGO = true
+				break
+			}
+		}
+	} else {
+		hasCGO = p.cgoPkgs[pkgPath]
+	}
+
+	if hasCGO {
+		baseOpts |= packages.NeedCompiledGoFiles
+	}
+
 	cfg := &packages.Config{
 		Mode: baseOpts,
 		Fset: fset,
@@ -191,23 +207,11 @@ func (p *GoParser) loadPackages(mod *Module, dir string, pkgPath PkgPath) (err e
 		cfg.Tests = true
 	}
 
+	fmt.Fprintf(os.Stderr, "[loadPackages] mod: %s, dir: %s, pkgPath: %s, hasCGO: %v\n", mod.Name, dir, pkgPath, hasCGO)
+
 	pkgs, err := packages.Load(cfg, pkgPath)
 	if err != nil {
 		return fmt.Errorf("load path '%s' failed: %v", dir, err)
-	}
-
-	hasCGO := false
-	if len(p.cgoPkgs) > 0 {
-		hasCGO = true
-	}
-	fmt.Fprintf(os.Stderr, "[loadPackages] mod: %s, dir: %s, pkgPath: %s, hasCGO: %v\n", mod.Name, dir, pkgPath, hasCGO)
-	if hasCGO {
-		baseOpts |= packages.NeedCompiledGoFiles
-		cfg.Mode = baseOpts
-		pkgs, err = packages.Load(cfg, pkgPath)
-		if err != nil {
-			return fmt.Errorf("load path '%s' with CGO failed: %v", dir, err)
-		}
 	}
 
 	for _, pkg := range pkgs {

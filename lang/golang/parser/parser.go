@@ -15,7 +15,6 @@
 package parser
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -300,25 +299,6 @@ func (p *GoParser) ParseRepo() (Repository, error) {
 }
 
 func (p *GoParser) ParseModule(mod *Module, dir string) (err error) {
-	// run go mod tidy before parse
-	cmd := exec.Command("go", "mod", "tidy")
-	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local")
-	buf := bytes.NewBuffer(nil)
-	cmd.Stderr = buf
-	cmd.Stdout = buf
-	go func() {
-		sc := bufio.NewScanner(buf)
-		// scan and print
-		for sc.Scan() {
-			fmt.Fprintln(os.Stderr, sc.Text())
-		}
-	}()
-	fmt.Fprintf(os.Stderr, "running go mod tidy in %s ...\n", dir)
-	if err := cmd.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "run go mod tidy failed in %s: %v\n", dir, buf.String())
-	}
-
 	filepath.Walk(dir, func(path string, info fs.FileInfo, e error) error {
 		if info != nil && info.IsDir() && filepath.Base(path) == ".git" {
 			return filepath.SkipDir

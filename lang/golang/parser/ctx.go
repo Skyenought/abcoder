@@ -88,7 +88,7 @@ func (p *GoParser) referCodes(ctx *fileContext, id *Identity, depth int) (err er
 	}
 
 	var files []string
-	if len(p.cgoPkgs) > 0 {
+	if len(pkg.CompiledGoFiles) > 0 {
 		files = pkg.CompiledGoFiles
 	} else {
 		files = pkg.GoFiles
